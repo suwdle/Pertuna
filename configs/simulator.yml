@@ -1,0 +1,16 @@
+K: 30
+submit: true
+N_trials: 300
+stochastic: true
+dispersion_k: 2.0
+pop_scale: 1.0
+global_coeffs:
+  beta_season: 0.5
+  theta_season: 0.2
+  gamma: 0.4
+  lambda: 0.2
+  phi: 0.8
+  w_vec: [0.10, 0.05, 0.02]
+  u_vec: [0.05, 0.03, 0.01]
+  delta_ad_map: {"ModelA": 0.25, "ModelB": 0.15, "ModelC": 0.20}
+weights: uniform
