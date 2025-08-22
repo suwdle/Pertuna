@@ -5,6 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "pandas>=2.3.1",
-    "pyyaml>=6.0.2",
+    "pandas",
+    "pyyaml",
+    "langchain",
+    "langchain-community",
+    "openai",
 ]

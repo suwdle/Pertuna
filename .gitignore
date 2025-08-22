@@ -1,0 +1,8 @@
+env
+.env
+.venv
+
+*.pdf
+report.md
+*request.md
+/outputs
