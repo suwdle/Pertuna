@@ -21,25 +21,17 @@ You are an expert market researcher. Your task is to create a detailed and reali
 """
 
     user_message_template = """
-    Please generate consumer persona number {persona_number} for the following product, considering the provided market insights. Ensure this persona is distinct from other personas you might generate for this product:
+    Please generate consumer persona number {persona_number} for the following product. This persona should be a typical consumer who is highly likely to purchase this specific product, considering its unique features and characteristics. Ensure this persona is distinct from other personas you might generate for this product, highlighting a primary purchasing motivation or characteristic.
 
     Product Name: {product_name}
     Product Category: {category_1} > {category_2} > {category_3}
     Product Features: {features}
 
-    --- Current Market Insights ---
-    - 소비자 심리: 소비 심리지수(CSI)가 상승하지만, 식품 소비자 물가 지수(CPI)는 급등하여 소비자들이 가격에 민감한 '계획 소비'를 지향하고 있습니다.
-    - 마케팅 효과: 광고 캠페인 및 SNS 챌린지가 수요를 직접적으로 견인하는 핵심 변수입니다.
-    - 계절성 확장: 소셜 트렌드가 제품 활용 범위를 확장시키고 있어 복합적인 계절성 지수 도입이 필요합니다.
-    - 주요 식품 카테고리별 동향:
-        - 호상 발효유(요거트): '그릭 요거트' 등 프리미엄화 및 '건강' 트렌드.
-        - 참치캔: 마케팅 캠페인(예: 안유진)이 판매를 견인.
-        - 조미료(액상): '집밥', '만능 소스' 트렌드 확대로 시장 성장.
-        - 고급 축산캔(햄): '명절 선물 세트' 수요 및 '저나트륨 햄' 건강 관심.
-        - 컵커피: 전통적인 여름 매출 외에 '컵빙수' 등 소셜 트렌드 영향.
-    ---
+    The persona must have the following attributes. Assign a value (e.g., a specific age, a description, or a rating 1-10) and a weight (1-10) to each attribute, indicating its importance in the purchase decision and how it is influenced by the product's features. For '평균 구매 수량', please provide a numerical value (e.g., 1, 2, 3) representing the typical quantity purchased, usually between 1 and 5.
 
-    The persona must have the following attributes. Assign a value (e.g., a specific age, a description, or a rating 1-10) and a weight (1-10) to each attribute, indicating its importance in the purchase decision and how it is influenced by the market insights provided. For '평균 구매 수량', please provide a numerical value (e.g., 1, 2, 3) representing the typical quantity purchased, usually between 1 and 5.
+    **Crucially, you must also generate the '제품 적합도' and '구매 결정 핵심 이유' attributes.**
+    - For '제품 적합도', evaluate all other persona attributes to determine how likely this persona is to purchase this specific product, and provide a score from 1 (not at all likely) to 10 (extremely likely).
+    - For '구매 결정 핵심 이유', provide a brief, clear rationale for the '제품 적합도' score, linking the persona's traits to the product's features.
 
     --- Persona Attributes ---
     {attributes}
