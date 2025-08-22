@@ -21,7 +21,7 @@ You are an expert market researcher. Your task is to create a detailed and reali
 """
 
     user_message_template = """
-    Please generate a single consumer persona for the following product, considering the provided market insights:
+    Please generate consumer persona number {persona_number} for the following product, considering the provided market insights. Ensure this persona is distinct from other personas you might generate for this product:
 
     Product Name: {product_name}
     Product Category: {category_1} > {category_2} > {category_3}
@@ -39,7 +39,7 @@ You are an expert market researcher. Your task is to create a detailed and reali
         - 컵커피: 전통적인 여름 매출 외에 '컵빙수' 등 소셜 트렌드 영향.
     ---
 
-    The persona must have the following attributes. Assign a value (e.g., a specific age, a description, or a rating 1-10) and a weight (1-10) to each attribute, indicating its importance in the purchase decision and how it is influenced by the market insights provided.
+    The persona must have the following attributes. Assign a value (e.g., a specific age, a description, or a rating 1-10) and a weight (1-10) to each attribute, indicating its importance in the purchase decision and how it is influenced by the market insights provided. For '평균 구매 수량', please provide a numerical value (e.g., 1, 2, 3) representing the typical quantity purchased, usually between 1 and 5.
 
     --- Persona Attributes ---
     {attributes}
@@ -62,7 +62,7 @@ You are an expert market researcher. Your task is to create a detailed and reali
     chain = prompt_template | llm | StrOutputParser()
     return chain
 
-def main(dry_run=True):
+def main(dry_run=False, num_personas_to_generate=1):
     """
     Main function to generate personas for all products.
     """
@@ -88,47 +88,54 @@ def main(dry_run=True):
         product_name = product_info['product_name']
         print(f"Generating persona for: {product_name}")
 
-        chain_input = {
-            "product_name": product_name,
-            "category_1": product_info['category_level_1'],
-            "category_2": product_info['category_level_2'],
-            "category_3": product_info['category_level_3'],
-            "features": product_info['product_feature'],
-            "attributes": attributes_str,
-            "yaml_attributes": yaml_attributes_str
-        }
+        # Loop to generate multiple personas
+        for i in range(num_personas_to_generate):
+            print(f"  Generating persona {i+1}/{num_personas_to_generate} for {product_name}")
 
-        if dry_run:
-            # In dry run, just create a dummy prompt for inspection
-            # The actual prompt construction happens via LangChain's chain.invoke
-            # We'll print the input to the chain here for inspection
-            print(f"\n--- Dry Run: Chain Input for {product_name} ---")
-            for key, value in chain_input.items():
-                if key == "attributes" or key == "yaml_attributes":
-                    # For long strings, print only a snippet or indicate content
-                    print(f"{key}: (content from persona_attributes.yml)")
-                else:
-                    print(f"{key}: {value}")
-            print("--------------------------------------------------\n")
+            # Modify chain_input to encourage diversity
+            chain_input = {
+                "product_name": product_name,
+                "category_1": product_info['category_level_1'],
+                "category_2": product_info['category_level_2'],
+                "category_3": product_info['category_level_3'],
+                "features": product_info['product_feature'],
+                "attributes": attributes_str,
+                "yaml_attributes": yaml_attributes_str,
+                "persona_number": i + 1 # Add persona number to prompt
+            }
 
-            # Still write a placeholder file to indicate generation
-            prompt_filename = f"outputs/prompts/llm_prompt_{sanitize_filename(product_name)}.txt"
-            with open(prompt_filename, 'w', encoding='utf-8') as f:
-                f.write(f"System: (See llm_persona_generator.py system_message)\nUser: (See llm_persona_generator.py user_message_template with input below)\n\nChain Input for {product_name}:\n{chain_input}")
-        else:
-            # In a real run, invoke the chain and save the persona
-            try:
-                llm_output = persona_chain.invoke(chain_input)
-                cleaned_yaml = llm_output.strip().replace("```yaml", "").replace("```", "").strip()
-                persona_data = yaml.safe_load(cleaned_yaml)
+            if dry_run:
+                # In dry run, just create a dummy prompt for inspection
+                # The actual prompt construction happens via LangChain's chain.invoke
+                # We'll print the input to the chain here for inspection
+                print(f"\n--- Dry Run: Chain Input for {product_name} (Persona {i+1}) ---\n")
+                for key, value in chain_input.items():
+                    if key == "attributes" or key == "yaml_attributes":
+                        # For long strings, print only a snippet or indicate content
+                        print(f"{key}: (content from persona_attributes.yml)")
+                    else:
+                        print(f"{key}: {value}")
+                print("--------------------------------------------------\n")
 
-                persona_filename = f"outputs/personas/{sanitize_filename(product_name)}_persona.yml"
-                with open(persona_filename, 'w', encoding='utf-8') as f:
-                    yaml.dump(persona_data, f, allow_unicode=True)
-                print(f"  -> Saved persona to {persona_filename}")
+                # Still write a placeholder file to indicate generation
+                prompt_filename = f"outputs/prompts/llm_prompt_{sanitize_filename(product_name)}_persona_{i+1}.txt"
+                with open(prompt_filename, 'w', encoding='utf-8') as f:
+                    f.write(f"System: (See llm_persona_generator.py system_message)\nUser: (See llm_persona_generator.py user_message_template with input below)\n\nChain Input for {product_name} (Persona {i+1}):\n{chain_input}")
+            else:
+                # In a real run, invoke the chain and save the persona
+                try:
+                    llm_output = persona_chain.invoke(chain_input)
+                    cleaned_yaml = llm_output.strip().replace("```yaml", "").replace("```", "").strip()
+                    persona_data = yaml.safe_load(cleaned_yaml)
 
-            except Exception as e:
-                print(f"  -> Error generating persona for {product_name}: {e}")
+                    # Modify persona_filename for multiple personas
+                    persona_filename = f"outputs/personas/{sanitize_filename(product_name)}_persona_{i+1}.yml"
+                    with open(persona_filename, 'w', encoding='utf-8') as f:
+                        yaml.dump(persona_data, f, allow_unicode=True)
+                    print(f"  -> Saved persona to {persona_filename}")
+
+                except Exception as e:
+                    print(f"  -> Error generating persona {i+1} for {product_name}: {e}")
 
 if __name__ == '__main__':
-    main(dry_run=False)
+    main(dry_run=False, num_personas_to_generate=10)

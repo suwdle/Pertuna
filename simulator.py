@@ -9,29 +9,30 @@ def sanitize_filename(name):
     """Sanitizes a string to be used as a filename."""
     return re.sub(r'[^a-zA-Z0-9가-힣\s-]', '', name).replace(' ', '_')
 
-def load_personas(product_name):
+def load_personas(product_name, num_personas_to_load=1):
     """
     Loads persona data for a given product.
-    It looks for a file named after the product in the personas directory.
-    If not found, it returns a dummy persona.
+    It looks for files named after the product in the personas directory.
+    If not found, it returns a list containing a dummy persona.
     """
     safe_name = sanitize_filename(product_name)
-    persona_file = f"outputs/personas/{safe_name}_persona.yml"
-
-    if not os.path.exists(persona_file):
-        # If a specific persona file doesn't exist, return a dummy persona
-        # This dummy persona now matches the expected structure
-        return {
-            'name': 'dummy_persona',
-            'attributes': [{'name': attr, 'value': 'dummy', 'weight': 5} for attr in ['나이', '성별', '건강 관심도', '가격 민감도', '마케팅 영향력', '가정식 선호도', '계절성 구매 성향', '선물 구매 성향']]
-        }
-
-    with open(persona_file, 'r', encoding='utf-8') as f:
-        persona_data = yaml.safe_load(f)
     
-    # The LLM now generates a single persona dictionary, not a list of attributes
-    # So, we return the loaded persona_data directly
-    return persona_data
+    loaded_personas = []
+    for i in range(1, num_personas_to_load + 1):
+        persona_file = f"outputs/personas/{safe_name}_persona_{i}.yml"
+        if os.path.exists(persona_file):
+            with open(persona_file, 'r', encoding='utf-8') as f:
+                persona_data = yaml.safe_load(f)
+                loaded_personas.append(persona_data)
+        else:
+            print(f"Warning: Persona file not found for {product_name} (Persona {i}). Using a dummy persona for this slot.")
+            # Return a dummy persona that matches the expected structure
+            loaded_personas.append({
+                'name': f'dummy_persona_{i}',
+                'attributes': [{'name': attr, 'value': 'dummy', 'weight': 5} for attr in ['나이', '성별', '건강 관심도', '가격 민감도', '마케팅 영향력', '가정식 선호도', '계절성 구매 성향', '선물 구매 성향', '평균 구매 수량']]
+            })
+    
+    return loaded_personas
 
 def load_external_data():
     """
@@ -66,7 +67,7 @@ def simulate_monthly_demand(persona, product_info, external_data, month_idx):
 
     # Base purchase probability (can be refined)
     base_purchase_score = sum(attr['weight'] for attr in persona['attributes'])
-    base_purchase_probability = min(base_purchase_score / 120.0, 1.0) # Max score 10*12 = 120
+    base_purchase_probability = min(base_purchase_score / 100.0, 1.0) # Max score 10*10 = 100
 
     # Apply external factors and persona sensitivities
     adjusted_probability = base_purchase_probability
@@ -104,9 +105,15 @@ def simulate_monthly_demand(persona, product_info, external_data, month_idx):
     adjusted_probability = max(0.0, min(1.0, adjusted_probability))
 
     # Determine if a purchase occurs in this month
-    # This is a simplified binary purchase. Could be extended to quantity.
+    # Now returns quantity instead of just 0 or 1
     if np.random.rand() < adjusted_probability:
-        return 1
+        # Get the purchase quantity from persona attributes, default to 1 if not found or invalid
+        purchase_quantity = persona_attrs.get('평균 구매 수량', {'value': 1})['value']
+        try:
+            purchase_quantity = int(purchase_quantity)
+        except (ValueError, TypeError):
+            purchase_quantity = 1 # Default to 1 if conversion fails
+        return purchase_quantity
     else:
         return 0
 
@@ -125,10 +132,15 @@ if __name__ == '__main__':
         product_name = product_info['product_name']
         print(f"Simulating for: {product_name}")
         
-        persona_template = load_personas(product_name)
-        if not persona_template: # Check if persona_template is empty (e.g., if dummy persona is empty)
-            print(f"  -> No valid persona found for {product_name}. Skipping.")
+        # Load all personas for this product
+        loaded_personas = load_personas(product_name, num_personas_to_load=10) # Load 10 personas
+        if not loaded_personas:
+            print(f"  -> No personas found for {product_name}. Skipping.")
             continue
+        
+        # Calculate how many simulations each persona will run
+        num_simulations_per_persona = num_personas_per_product // len(loaded_personas)
+        remaining_simulations = num_personas_per_product % len(loaded_personas)
 
         monthly_product_sales = [0] * 12 # Sales for this specific product over 12 months
 
@@ -137,11 +149,16 @@ if __name__ == '__main__':
             current_market_size = total_market_size_base * external_market_data['total_market_size_factor'][month_idx]
             
             monthly_purchases_sum_for_product = 0
-            for _ in range(num_personas_per_product): # Simulate for each persona instance
-                # In a more advanced setup, you'd sample from a pool of diverse personas
-                # For now, we use the template and simulate purchase for this month
-                purchase_occurred = simulate_monthly_demand(persona_template, product_info, external_market_data, month_idx)
-                monthly_purchases_sum_for_product += purchase_occurred
+            
+            # Simulate for each loaded persona
+            for i, persona in enumerate(loaded_personas):
+                current_persona_sims = num_simulations_per_persona
+                if i < remaining_simulations: # Distribute remaining simulations
+                    current_persona_sims += 1
+
+                for _ in range(current_persona_sims):
+                    purchase_occurred = simulate_monthly_demand(persona, product_info, external_market_data, month_idx)
+                    monthly_purchases_sum_for_product += purchase_occurred
             
             # Scale up the simulated purchases to the current market size
             # This is a very simplified scaling. A more complex model would distribute purchases.
