@@ -54,7 +54,7 @@ You are an expert market researcher. Your task is to create a detailed and reali
     chain = prompt_template | llm | StrOutputParser()
     return chain
 
-def main(dry_run=False, num_personas_to_generate=1):
+def main(dry_run=False, num_personas_to_generate=10):
     """
     Main function to generate personas for all products.
     """
@@ -98,12 +98,9 @@ def main(dry_run=False, num_personas_to_generate=1):
 
             if dry_run:
                 # In dry run, just create a dummy prompt for inspection
-                # The actual prompt construction happens via LangChain's chain.invoke
-                # We'll print the input to the chain here for inspection
                 print(f"\n--- Dry Run: Chain Input for {product_name} (Persona {i+1}) ---\n")
                 for key, value in chain_input.items():
                     if key == "attributes" or key == "yaml_attributes":
-                        # For long strings, print only a snippet or indicate content
                         print(f"{key}: (content from persona_attributes.yml)")
                     else:
                         print(f"{key}: {value}")
@@ -120,7 +117,6 @@ def main(dry_run=False, num_personas_to_generate=1):
                     cleaned_yaml = llm_output.strip().replace("```yaml", "").replace("```", "").strip()
                     persona_data = yaml.safe_load(cleaned_yaml)
 
-                    # Modify persona_filename for multiple personas
                     persona_filename = f"outputs/personas/{sanitize_filename(product_name)}_persona_{i+1}.yml"
                     with open(persona_filename, 'w', encoding='utf-8') as f:
                         yaml.dump(persona_data, f, allow_unicode=True)

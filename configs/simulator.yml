@@ -1,6 +1,6 @@
-K: 30
+K: 15
 submit: true
-N_trials: 300
+N_trials: 10000
 stochastic: true
 dispersion_k: 2.0
 pop_scale: 1.0
